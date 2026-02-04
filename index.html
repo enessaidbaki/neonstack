@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Neon Stack">
+    
+    <link rel="apple-touch-icon" href="icon.png"> 
+
+    <title>Neon Stack: Ultimate Sci-Fi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #00f3ff;
+            --secondary-color: #bc13fe;
+            --hud-bg: rgba(2, 6, 13, 0.85);
+            --hud-border: rgba(0, 243, 255, 0.4);
+        }
+
+        body {
+            background-color: #000;
+            touch-action: none;
+            overflow: hidden;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            color: white;
+            overscroll-behavior: none;
+        }
+
+        /* --- GEÇİŞ EFEKTİ (FADE) --- */
+        #fade-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 0.4s ease-in-out;
+        }
+        .fade-active {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+
+        /* --- ATMOSFERİK KATMANLAR --- */
+        
+        #bg-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            transition: all 1.5s ease-in-out;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        #bg-effect {
+            position: absolute; top: 0; left: 0; width: 100%; height: 200%;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.3;
+            animation: scrollBg 20s linear infinite;
+            pointer-events: none;
+            transition: opacity 1s, background-image 1s;
+        }
+
+        @keyframes scrollBg {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+
+        #scanlines {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.3;
+        }
+
+        #vignette {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 50%, black 120%);
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        #game-container {
+            position: relative; width: 100%; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block; z-index: 10; 
+            transition: transform 0.1s;
+        }
+
+        /* --- UI & HUD DÜZENİ --- */
+        
+        .top-controls {
+            position: absolute; 
+            top: max(2rem, env(safe-area-inset-top) + 10px);
+            right: max(2rem, env(safe-area-inset-right) + 10px);
+            display: flex; gap: 0.8rem; pointer-events: auto; z-index: 55;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: max(2rem, env(safe-area-inset-top) + 10px);
+            left: max(2rem, env(safe-area-inset-left) + 10px);
+            text-align: left;
+            pointer-events: none;
+            z-index: 55;
+        }
+
+        .best-score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--primary-color);
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            margin-bottom: 5px;
+        }
+
+        .phase-indicator {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .phase-levelup {
+            color: #fff !important;
+            text-shadow: 0 0 20px #fff;
+            transform: scale(1.5) translateX(20px);
+        }
+
+        .score-display {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10rem;
+            color: rgba(255, 255, 255, 0.05);
+            font-weight: 900;
+            text-shadow: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: absolute;
+            top: max(12%, env(safe-area-inset-top) + 40px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1; 
+            pointer-events: none;
+            letter-spacing: -5px;
+            line-height: 1;
+        }
+        
+        .score-active {
+            color: rgba(255, 255, 255, 0.15);
+            transform: translateX(-50%) scale(1.1);
+            text-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+        }
+
+        /* --- HUD PANELLERİ --- */
+        .hud-panel {
+            background: rgba(10, 15, 20, 0.85);
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2), inset 0 0 50px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 3rem;
+            display: flex; flex-direction: column; align-items: center;
+            max-width: 90%; width: 450px;
+            position: relative; pointer-events: auto;
+            clip-path: polygon(
+                30px 0, 100% 0, 
+                100% calc(100% - 30px), calc(100% - 30px) 100%, 
+                0 100%, 0 30px
+            );
+        }
+        
+        .hud-panel::after {
+            content: ''; position: absolute;
+            bottom: 5px; right: 35px; width: 40%; height: 3px;
+            background: var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        #start-screen, #game-over-screen, #settings-screen, #pause-screen, #info-screen, #exit-confirm-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 60;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .hidden { opacity: 0; pointer-events: none !important; visibility: hidden; }
+        .d-none { display: none !important; }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem; margin-bottom: 0.5rem; text-align: center;
+            color: #fff;
+            text-transform: uppercase; letter-spacing: 4px;
+            text-shadow: 0 0 15px var(--primary-color);
+        }
+
+        h2 { font-family: 'Orbitron', sans-serif; font-size: 2rem; margin-bottom: 2rem; color: var(--primary-color); text-transform: uppercase; }
+
+        p { color: #88ccff; margin-bottom: 2.5rem; font-size: 1.1rem; text-align: center; letter-spacing: 2px; opacity: 0.8; }
+
+        #ui-status-text {
+            white-space: nowrap; 
+            font-size: clamp(0.75rem, 4vw, 1.1rem);
+        }
+
+        /* Butonlar */
+        .btn-primary, .btn-secondary, .icon-btn {
+            touch-action: manipulation;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            border: none; padding: 1.2rem 0;
+            font-size: 1.4rem; color: #000;
+            font-family: 'Orbitron', sans-serif; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 3px;
+            cursor: pointer; width: 100%; margin-top: 20px;
+            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+            transition: all 0.2s;
+            position: relative;
+        }
+        .btn-primary:active { transform: scale(0.95); }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 1rem 0;
+            margin-top: 15px; width: 100%;
+            cursor: pointer; transition: 0.2s;
+            font-family: 'Share Tech Mono', monospace; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+        .btn-secondary:active { background: rgba(0, 243, 255, 0.2); }
+
+        .icon-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            width: 48px; height: 48px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; color: #fff; transition: 0.2s;
+            clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+        }
+        .icon-btn:active { transform: scale(0.9); }
+
+        /* KAPATMA BUTONU KONUMLANDIRMA */
+        .bottom-controls {
+            position: absolute;
+            bottom: max(2rem, env(safe-area-inset-bottom) + 10px);
+            right: max(2rem, env(safe-area-inset-right) + 10px);
+            display: flex;
+            z-index: 55;
+        }
+        
+        .exit-btn {
+            border-color: #ff3333;
+            color: #ff3333;
+        }
+        .exit-btn:hover, .exit-btn:active {
+            border-color: #ff6666;
+            color: #ff6666;
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.3);
+        }
+
+        .slider {
+            -webkit-appearance: none; width: 100%; height: 6px;
+            background: rgba(255, 255, 255, 0.1); outline: none; border-radius: 3px;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px;
+            background: var(--primary-color); cursor: pointer;
+            box-shadow: 0 0 15px var(--primary-color); transform: rotate(45deg);
+        }
+        .setting-row { width: 100%; margin-bottom: 1.5rem; }
+        .setting-label { display: flex; justify-content: space-between; margin-bottom: 0.8rem; color: var(--primary-color); font-size: 1rem; letter-spacing: 1px; }
+
+        /* Oyun İçi Efektler */
+        #flash-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: #fff; opacity: 0; pointer-events: none; z-index: 15; transition: opacity 0.1s; }
+        .game-text { position: absolute; width: 100%; text-align: center; pointer-events: none; z-index: 30; font-family: 'Orbitron', sans-serif; font-weight: 900; }
+        .combo-text { top: 25%; font-size: 4rem; color: #ffd700; opacity: 0; transform: scale(0.5); transition: all 0.2s; text-shadow: 0 0 20px rgba(255, 215, 0, 0.8); letter-spacing: -2px; }
+        .combo-active { opacity: 1; transform: scale(1); }
+        .bonus-text { top: 35%; font-size: 2.5rem; color: #4ade80; opacity: 0; transform: translateY(20px); transition: all 0.5s ease-out; text-shadow: 0 0 20px rgba(74, 222, 128, 1); letter-spacing: 4px; }
+        .bonus-active { opacity: 1; transform: translateY(-20px); }
+
+        .info-text { color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; text-align: left; margin-bottom: 1rem; line-height: 1.5; }
+        .info-header { color: var(--primary-color); font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: bold; border-bottom: 1px solid rgba(0, 243, 255, 0.3); padding-bottom: 5px; width: 100%; }
+
+        /* DİL SEÇİCİ STİLİ */
+        .language-selector {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+            z-index: 65; 
+        }
+        .lang-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 5px 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            clip-path: polygon(5px 0, 100% 0, 100% 100%, 0 100%, 0 5px);
+        }
+        .lang-btn.active {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: rgba(0, 243, 255, 0.1);
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="bg-layer">
+        <div id="bg-effect"></div>
+    </div>
+    <div id="scanlines"></div>
+    <div id="vignette"></div>
+    
+    <!-- KARARMA EFEKTİ -->
+    <div id="fade-overlay"></div>
+
+    <div id="game-container">
+        <div id="score" class="score-display">0</div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="flash-overlay"></div>
+        <div id="combo-display" class="game-text combo-text">PERFECT!</div>
+        <div id="bonus-display" class="game-text bonus-text">EXPAND!</div>
+        
+        <div class="info-panel">
+            <div class="best-score" id="ui-best-score">BEST: <span id="best-score">0</span></div>
+            <div id="phase-display" class="phase-indicator">PHASE 1: GRID</div>
+        </div>
+
+        <div class="top-controls">
+            <button id="pause-btn" class="icon-btn" title="Duraklat">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            </button>
+        </div>
+
+        <!-- START SCREEN -->
+        <div id="start-screen">
+            <div class="hud-panel">
+                <h1>NEON STACK</h1>
+                <p id="ui-status-text">SİSTEM HAZIR // GİRİŞ BEKLENİYOR</p>
+                <button class="btn-primary" id="start-btn">INITIATE SEQUENCE</button>
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <button class="btn-secondary" id="open-settings-btn" style="flex: 1;">CONFIG</button>
+                    <button class="btn-secondary" id="open-info-btn" style="flex: 1;">INFO</button>
+                </div>
+            </div>
+            
+            <!-- DİL SEÇİCİ -->
+            <div class="language-selector">
+                <button class="lang-btn" id="lang-tr" onclick="changeLanguage('tr')">TR</button>
+                <button class="lang-btn" id="lang-en" onclick="changeLanguage('en')">EN</button>
+            </div>
+
+            <!-- KAPATMA BUTONU (SADECE ANA EKRANDA) -->
+            <div class="bottom-controls">
+                <button id="exit-app-btn" class="icon-btn exit-btn" title="Exit">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- PAUSE SCREEN -->
+        <div id="pause-screen" class="hidden">
+            <div class="hud-panel">
+                <h2 id="pause-header">SYSTEM PAUSED</h2>
+                <div id="pause-main-options">
+                    <button class="btn-primary" id="resume-btn">RESUME</button>
+                    <button class="btn-secondary" id="pause-config-btn">AUDIO CONFIG</button>
+                    <button class="btn-secondary" id="quit-btn">MAIN MENU</button>
+                </div>
+                <div id="pause-audio-settings" class="d-none" style="width: 100%;">
+                    <div class="setting-row">
+                        <div class="setting-label"><span id="lbl-pause-music">MUSIC VOL</span> <span id="pause-music-val">50%</span></div>
+                        <input type="range" min="0" max="100" value="50" class="slider" id="pause-music-slider">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label"><span id="lbl-pause-sfx">SFX VOL</span> <span id="pause-sfx-val">80%</span></div>
+                        <input type="range" min="0" max="100" value="80" class="slider" id="pause-sfx-slider">
+                    </div>
+                    <button class="btn-secondary" id="pause-back-btn">BACK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- EXIT CONFIRM SCREEN -->
+        <div id="exit-confirm-screen" class="hidden">
+            <div class="hud-panel" style="border-color: #ff3333;">
+                <h2 id="ui-exit-header" style="color: #ff3333;">SYSTEM TERMINATION</h2>
+                <p id="ui-exit-text">Are you sure you want to exit the system?</p>
+                <div style="display: flex; gap: 15px; width: 100%;">
+                    <button class="btn-primary" id="confirm-exit-btn" style="flex: 1; background: #ff3333;">YES</button>
+                    <button class="btn-secondary" id="cancel-exit-btn" style="flex: 1;">NO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS SCREEN -->
+        <div id="settings-screen" class="hidden">
+            <div class="hud-panel">
+                <h2 id="ui-config-header">CONFIG</h2>
+                <div class="setting-row">
+                    <div class="setting-label"><span id="lbl-music">MUSIC VOL</span> <span id="music-val">50%</span></div>
+                    <input type="range" min="0" max="100" value="50" class="slider" id="music-slider">
+                </div>
+                <div class="setting-row">
+                    <div class="setting-label"><span id="lbl-sfx">SFX VOL</span> <span id="sfx-val">80%</span></div>
+                    <input type="range" min="0" max="100" value="80" class="slider" id="sfx-slider">
+                </div>
+                <button class="btn-primary" id="close-settings-btn">SAVE & EXIT</button>
+            </div>
+        </div>
+
+        <!-- INFO SCREEN -->
+        <div id="info-screen" class="hidden">
+            <div class="hud-panel">
+                <h2 id="ui-info-header">SYSTEM INFO</h2>
+                <div style="width: 100%; text-align: left;">
+                    <div class="info-header" id="ui-privacy-title">DATA PRIVACY</div>
+                    <p class="info-text" id="ui-privacy-text">This game does not collect any personal data or send it to servers. Score data is stored locally on your device (LocalStorage).</p>
+                    <div class="info-header" id="ui-version-title">VERSION</div>
+                    <p class="info-text">v1.0 - Ultimate Sci-Fi Edition</p>
+                    <div class="info-header" id="ui-credits-title">CREDITS</div>
+                    <p class="info-text">Designed & Developed by Enes Said Baki</p>
+                </div>
+                <button class="btn-primary" id="close-info-btn">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="game-over-screen" class="hidden">
+            <div class="hud-panel">
+                <h1 style="color: #ff3333; text-shadow: 0 0 20px rgba(255,0,0,0.8);" id="ui-gameover-header">CRITICAL FAILURE</h1>
+                <p id="final-score-text" style="font-size: 1.5rem; color: white;">SCORE: 0</p>
+                <button class="btn-primary" id="restart-btn">REBOOT SYSTEM</button>
+                <button class="btn-secondary" id="home-btn">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- ÇOKLU DİL SİSTEMİ --- */
+        let savedLang = localStorage.getItem('neonStackLang');
+        let systemLang = navigator.language || navigator.userLanguage;
+        let initialLang = 'en'; 
+
+        if (savedLang) {
+            initialLang = savedLang;
+        } else if (systemLang && systemLang.toLowerCase().startsWith('tr')) {
+            initialLang = 'tr';
+        }
+
+        let currentLang = initialLang;
+
+        const translations = {
+            tr: {
+                start: { status: "SİSTEM HAZIR // GİRİŞ BEKLENİYOR", btnStart: "BASLAT", btnConfig: "AYARLAR", btnInfo: "BİLGİ" },
+                exit: { header: "SİSTEM SONLANDIRMA", text: "Sistemden çıkış yapmak istediğinize emin misiniz?", yes: "EVET", no: "HAYIR" },
+                pause: { 
+                    header: "DURAKLATILDI", headerAudio: "SES AYARLARI", 
+                    btnResume: "DEVAM ET", btnAudio: "SES AYARLARI", btnMenu: "ANA MENÜ", btnBack: "GERİ",
+                    lblMusic: "MÜZİK", lblSfx: "EFEKTLER"
+                },
+                settings: { header: "AYARLAR", lblMusic: "MÜZİK", lblSfx: "EFEKTLER", btnSave: "KAYDET & ÇIK" },
+                info: {
+                    header: "SİSTEM BİLGİSİ",
+                    privacyTitle: "VERİ GİZLİLİĞİ",
+                    privacyText: "Bu oyun kişisel verilerinizi toplamaz veya sunuculara göndermez. Skor verileri sadece cihazınızın yerel hafızasında (LocalStorage) saklanır.",
+                    versionTitle: "SÜRÜM", creditsTitle: "YAPIMCI", btnClose: "KAPAT"
+                },
+                gameover: { header: "KRİTİK HATA", scorePrefix: "SKOR: ", btnRestart: "TEKRAR BAŞLAT", btnMenu: "ANA MENÜ" },
+                ui: { best: "EN YÜKSEK: ", phase: "FAZ ", phases: ["BAŞLANGIÇ", "SİBER ŞEHİR", "KIZIL GEZEGEN", "HİPER UZAY", "TEKİLLİK"] },
+                combo: {
+                    good: "GÜZEL!", great: "HARİKA!", super: "SÜPER!", perfect: "MÜKEMMEL!",
+                    excellent: "MUAZZAM!", amazing: "İNANILMAZ!", godlike: "EFSANEVİ!"
+                }
+            },
+            en: {
+                start: { status: "SYSTEM READY // AWAITING INPUT", btnStart: "INITIATE SEQUENCE", btnConfig: "SYSTEM CONFIG", btnInfo: "INFO" },
+                exit: { header: "SYSTEM TERMINATION", text: "Are you sure you want to exit the system?", yes: "YES", no: "NO" },
+                pause: { 
+                    header: "SYSTEM PAUSED", headerAudio: "AUDIO CONFIG",
+                    btnResume: "RESUME", btnAudio: "AUDIO CONFIG", btnMenu: "MAIN MENU", btnBack: "BACK",
+                    lblMusic: "MUSIC VOL", lblSfx: "SFX VOL"
+                },
+                settings: { header: "CONFIG", lblMusic: "MUSIC VOL", lblSfx: "SFX VOL", btnSave: "SAVE & EXIT" },
+                info: {
+                    header: "SYSTEM INFO",
+                    privacyTitle: "DATA PRIVACY",
+                    privacyText: "This game does not collect any personal data or send it to servers. Score data is stored locally on your device (LocalStorage).",
+                    versionTitle: "VERSION", creditsTitle: "CREDITS", btnClose: "CLOSE"
+                },
+                gameover: { header: "CRITICAL FAILURE", scorePrefix: "SCORE: ", btnRestart: "REBOOT SYSTEM", btnMenu: "MAIN MENU" },
+                ui: { best: "BEST: ", phase: "PHASE ", phases: ["INITIATION", "CYBER CITY", "RED PLANET", "HYPER SPACE", "SINGULARITY"] },
+                combo: {
+                    good: "GOOD!", great: "GREAT!", super: "SUPER!", perfect: "PERFECT!",
+                    excellent: "EXCELLENT!", amazing: "AMAZING!", godlike: "GODLIKE!"
+                }
+            }
+        };
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('neonStackLang', lang);
+            updateUIText();
+            document.getElementById('lang-tr').classList.toggle('active', lang === 'tr');
+            document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+            playClickSound(); 
+        }
+
+        function updateUIText() {
+            const t = translations[currentLang];
+            document.getElementById('ui-status-text').textContent = t.start.status;
+            document.getElementById('start-btn').textContent = t.start.btnStart;
+            document.getElementById('open-settings-btn').textContent = t.start.btnConfig;
+            document.getElementById('open-info-btn').textContent = t.start.btnInfo;
+            
+            document.getElementById('ui-exit-header').textContent = t.exit.header;
+            document.getElementById('ui-exit-text').textContent = t.exit.text;
+            document.getElementById('confirm-exit-btn').textContent = t.exit.yes;
+            document.getElementById('cancel-exit-btn').textContent = t.exit.no;
+
+            document.getElementById('ui-config-header').textContent = t.settings.header;
+            document.getElementById('lbl-music').textContent = t.settings.lblMusic;
+            document.getElementById('lbl-sfx').textContent = t.settings.lblSfx;
+            document.getElementById('close-settings-btn').textContent = t.settings.btnSave;
+            document.getElementById('ui-info-header').textContent = t.info.header;
+            document.getElementById('ui-privacy-title').textContent = t.info.privacyTitle;
+            document.getElementById('ui-privacy-text').textContent = t.info.privacyText;
+            document.getElementById('ui-version-title').textContent = t.info.versionTitle;
+            document.getElementById('ui-credits-title').textContent = t.info.creditsTitle;
+            document.getElementById('close-info-btn').textContent = t.info.btnClose;
+            document.getElementById('resume-btn').textContent = t.pause.btnResume;
+            document.getElementById('pause-config-btn').textContent = t.pause.btnAudio;
+            document.getElementById('quit-btn').textContent = t.pause.btnMenu;
+            document.getElementById('lbl-pause-music').textContent = t.pause.lblMusic;
+            document.getElementById('lbl-pause-sfx').textContent = t.pause.lblSfx;
+            document.getElementById('pause-back-btn').textContent = t.pause.btnBack;
+            document.getElementById('ui-gameover-header').textContent = t.gameover.header;
+            document.getElementById('restart-btn').textContent = t.gameover.btnRestart;
+            document.getElementById('home-btn').textContent = t.gameover.btnMenu;
+            document.getElementById('ui-best-score').innerHTML = `${t.ui.best}<span id="best-score">${state.bestScore}</span>`;
+            if(!state.gameRunning && state.score === 0) { updateEnvironment(0); }
+        }
+
+        /* --- SES MOTORU --- */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let masterGain = audioCtx.createGain(); masterGain.connect(audioCtx.destination);
+        let musicGain = audioCtx.createGain(); let sfxGain = audioCtx.createGain();
+        const delayNode = audioCtx.createDelay(); delayNode.delayTime.value = 0.35; 
+        const feedbackGain = audioCtx.createGain(); feedbackGain.gain.value = 0.4; 
+        musicGain.disconnect(); musicGain.connect(masterGain); musicGain.connect(delayNode);  
+        delayNode.connect(masterGain); delayNode.connect(feedbackGain); feedbackGain.connect(delayNode);
+        sfxGain.connect(masterGain);
+
+        let musicVolume = 0.4; let sfxVolume = 0.6; 
+        musicGain.gain.value = musicVolume; sfxGain.gain.value = sfxVolume;
+
+        let musicInterval; let noteIndex = 0; let droneOsc = null; let droneGain = null; let droneLfo = null; 
+        let noteDuration = 300; let currentSynthType = 'triangle'; 
+
+        const melody = [261.63, 311.13, 392.00, 466.16, 523.25, 466.16, 392.00, 311.13, 261.63, 196.00, 261.63, 392.00];
+
+        function playArpeggioNote(freq, time) {
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter();
+            osc.type = currentSynthType; osc.frequency.setValueAtTime(freq, time);
+            filter.type = 'lowpass'; filter.frequency.setValueAtTime(400, time);
+            
+            if (currentSynthType === 'square') {
+                filter.frequency.exponentialRampToValueAtTime(5000, time + 0.05); 
+                filter.frequency.exponentialRampToValueAtTime(400, time + 0.5);
+            } else {
+                filter.frequency.exponentialRampToValueAtTime(3000, time + 0.1); 
+                filter.frequency.exponentialRampToValueAtTime(400, time + 0.8);
+            }
+
+            gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(0.2, time + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, time + 1.2); 
+            osc.connect(filter); filter.connect(gain); gain.connect(musicGain); 
+            osc.start(time); osc.stop(time + 1.5);
+        }
+
+        function startDrone(time) {
+            droneOsc = audioCtx.createOscillator(); droneGain = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter();
+            droneOsc.type = 'sawtooth'; droneOsc.frequency.setValueAtTime(55, time); 
+            filter.type = 'lowpass'; filter.frequency.setValueAtTime(120, time);
+            droneLfo = audioCtx.createOscillator(); droneLfo.type = 'sine'; droneLfo.frequency.value = 0.15; 
+            const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 50; 
+            droneLfo.connect(lfoGain); lfoGain.connect(filter.frequency);
+            droneGain.gain.setValueAtTime(0, time); droneGain.gain.linearRampToValueAtTime(0.4, time + 3); 
+            droneOsc.connect(filter); filter.connect(droneGain); droneGain.connect(musicGain); 
+            droneOsc.start(time); droneLfo.start(time);
+            droneOsc.stopNode = () => {
+                 try { const now = audioCtx.currentTime; droneGain.gain.cancelScheduledValues(now); droneGain.gain.setValueAtTime(droneGain.gain.value, now); droneGain.gain.linearRampToValueAtTime(0, now + 1.5); droneOsc.stop(now + 1.6); droneLfo.stop(now + 1.6); } catch(e){}
+            };
+        }
+
+        function startMusic() {
+            if (musicInterval) clearInterval(musicInterval);
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (!droneOsc || droneOsc.state === 'stopped') startDrone(audioCtx.currentTime);
+            noteIndex = 0;
+            musicInterval = setInterval(() => {
+                if(audioCtx.state === 'running') playArpeggioNote(melody[noteIndex % melody.length], audioCtx.currentTime);
+                noteIndex++;
+            }, noteDuration); 
+        }
+        
+        function updateMusicIntensity(phase) {
+            if (!state.gameRunning) {
+                noteDuration = 180; 
+                currentSynthType = 'square'; 
+                if(droneLfo) droneLfo.frequency.value = 2.0; 
+            } else {
+                if (phase === 1) { noteDuration = 300; currentSynthType = 'triangle'; if(droneLfo) droneLfo.frequency.value = 0.15; } 
+                else if (phase === 2) { noteDuration = 240; currentSynthType = 'triangle'; if(droneLfo) droneLfo.frequency.value = 0.5; } 
+                else if (phase === 3) { noteDuration = 180; currentSynthType = 'sawtooth'; if(droneLfo) droneLfo.frequency.value = 2.0; } 
+                else { noteDuration = 140; currentSynthType = 'sawtooth'; if(droneLfo) droneLfo.frequency.value = 8.0; }
+            }
+            
+            if (state.gameRunning || !state.isPaused) {
+                clearInterval(musicInterval);
+                musicInterval = setInterval(() => {
+                    if(audioCtx.state === 'running')
+                        playArpeggioNote(melody[noteIndex % melody.length], audioCtx.currentTime);
+                    noteIndex++;
+                }, noteDuration);
+            }
+        }
+
+        function stopMusic() { if (musicInterval) clearInterval(musicInterval); if (droneOsc && droneOsc.stopNode) droneOsc.stopNode(); droneOsc = null; }
+
+        function playTone(freq, type, duration) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(sfxGain); osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playClickSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.connect(gain); gain.connect(sfxGain); osc.start(now); osc.stop(now + 0.1);
+        }
+
+        function playBackSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.connect(gain); gain.connect(sfxGain); osc.start(now); osc.stop(now + 0.15);
+        }
+        
+        function playPhaseupSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(2000, now + 1.0);
+            gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0, now + 1.0);
+            const chime = audioCtx.createOscillator(); const chimeGain = audioCtx.createGain();
+            chime.type = 'sine'; chime.frequency.setValueAtTime(880, now); chime.frequency.setValueAtTime(1108, now + 0.1);
+            chimeGain.gain.setValueAtTime(0, now); chimeGain.gain.linearRampToValueAtTime(0.5, now + 0.1); chimeGain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+            chimeGain.connect(delayNode); osc.connect(gain); gain.connect(sfxGain); chime.connect(chimeGain); chimeGain.connect(sfxGain);
+            osc.start(now); osc.stop(now + 1.0); chime.start(now); chime.stop(now + 1.5);
+        }
+
+        function playSnap() { playTone(800, 'sine', 0.1); } 
+        function playPerfect() { playTone(1200, 'sine', 0.4); setTimeout(() => playTone(1500, 'sine', 0.5), 100); }
+        function playBonusSound() { playTone(440, 'square', 0.1); setTimeout(() => playTone(880, 'square', 0.3), 100); }
+        function playFail() { playTone(150, 'sawtooth', 0.5); playTone(100, 'sawtooth', 0.6); }
+
+        function playStartSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain();
+            osc1.type = 'sine'; osc1.frequency.setValueAtTime(523.25, now); osc1.frequency.exponentialRampToValueAtTime(1046.50, now + 0.1); 
+            gain1.gain.setValueAtTime(0, now); gain1.gain.linearRampToValueAtTime(0.6, now + 0.05); gain1.gain.exponentialRampToValueAtTime(0.01, now + 1.5); 
+            const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain(); const filter2 = audioCtx.createBiquadFilter();
+            osc2.type = 'sawtooth'; osc2.frequency.setValueAtTime(100, now); osc2.frequency.linearRampToValueAtTime(600, now + 0.3);
+            filter2.type = 'lowpass'; filter2.frequency.setValueAtTime(200, now); filter2.frequency.linearRampToValueAtTime(4000, now + 0.2); 
+            gain2.gain.setValueAtTime(0.2, now); gain2.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc1.connect(gain1); gain1.connect(sfxGain); gain1.connect(delayNode); 
+            osc2.connect(filter2); filter2.connect(gain2); gain2.connect(sfxGain);
+            osc1.start(now); osc1.stop(now + 1.5); osc2.start(now); osc2.stop(now + 0.4);
+        }
+
+        function triggerGameStart() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            playStartSound();
+            const fade = document.getElementById('fade-overlay');
+            fade.classList.add('fade-active');
+            setTimeout(() => {
+                startGame();
+                setTimeout(() => { fade.classList.remove('fade-active'); }, 100);
+            }, 500); 
+        }
+
+        /* --- OYUN DEĞİŞKENLERİ --- */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const comboDisplay = document.getElementById('combo-display');
+        const scoreEl = document.getElementById('score');
+        const phaseDisplay = document.getElementById('phase-display');
+        const flashOverlay = document.getElementById('flash-overlay');
+        
+        let width, height;
+        const INITIAL_WIDTH = 250;
+        const BLOCK_HEIGHT = 50;
+        const VIEW_OFFSET_X = 20; 
+        const VIEW_OFFSET_Y = -20; 
+
+        let state = {
+            score: 0, combo: 0, maxCombo: 0, perfectCount: 0,
+            blocks: [], debris: [], gameRunning: false, isPaused: false, currentBlock: null,
+            direction: 1, speed: 5, targetCameraY: 0, cameraY: 0, hue: 0, phase: 1, phaseName: "GRID",
+            bestScore: parseInt(localStorage.getItem('sciFiStackBest')) || 0
+        };
+
+        /* --- ÇEVRESEL ETKİLER --- */
+        function updateEnvironment(score) {
+            const bgLayer = document.getElementById('bg-layer');
+            const bgEffect = document.getElementById('bg-effect');
+            const t = translations[currentLang];
+            let newPhase = 1;
+            let pName = t.ui.phases[0];
+            
+            if (!state.gameRunning) {
+                newPhase = 1; pName = t.ui.phases[0];
+                bgLayer.style.background = "radial-gradient(circle at center, #1a1a2e 0%, #000000 100%)";
+                bgEffect.style.backgroundImage = `linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px)`;
+                bgEffect.style.backgroundSize = "40px 40px";
+                document.documentElement.style.setProperty('--primary-color', '#00f3ff');
+                phaseDisplay.textContent = `${t.ui.phase}1: ${pName}`;
+                updateMusicIntensity(0); 
+                return;
+            }
+
+            if (score < 15) {
+                newPhase = 1; pName = t.ui.phases[0];
+                bgLayer.style.background = "radial-gradient(circle at center, #1a1a2e 0%, #000000 100%)";
+                bgEffect.style.backgroundImage = `linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px)`;
+                bgEffect.style.backgroundSize = "40px 40px";
+                document.documentElement.style.setProperty('--primary-color', '#00f3ff');
+            } else if (score < 35) {
+                newPhase = 2; pName = t.ui.phases[1];
+                bgLayer.style.background = "radial-gradient(circle at center, #022c0b 0%, #000000 100%)"; 
+                bgEffect.style.backgroundImage = `linear-gradient(0deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px)`; 
+                bgEffect.style.backgroundSize = "20px 20px";
+                document.documentElement.style.setProperty('--primary-color', '#22c55e'); 
+            } else if (score < 60) {
+                newPhase = 3; pName = t.ui.phases[2];
+                bgLayer.style.background = "radial-gradient(circle at center, #450a0a 0%, #000000 100%)"; 
+                bgEffect.style.backgroundImage = `radial-gradient(rgba(255, 100, 100, 0.2) 2px, transparent 2px)`; 
+                bgEffect.style.backgroundSize = "60px 60px";
+                document.documentElement.style.setProperty('--primary-color', '#ef4444'); 
+            } else if (score < 90) {
+                newPhase = 4; pName = t.ui.phases[3];
+                bgLayer.style.background = "radial-gradient(circle at center, #312e81 0%, #000000 100%)"; 
+                bgEffect.style.backgroundImage = `linear-gradient(rgba(100, 100, 255, 0.2) 1px, transparent 1px)`; 
+                bgEffect.style.backgroundSize = "100% 50px";
+                document.documentElement.style.setProperty('--primary-color', '#8b5cf6'); 
+            } else {
+                newPhase = 5; pName = t.ui.phases[4];
+                bgLayer.style.background = "#000";
+                bgEffect.style.backgroundImage = `radial-gradient(white 2px, transparent 2px)`;
+                bgEffect.style.backgroundSize = "100px 100px";
+                document.documentElement.style.setProperty('--primary-color', '#ffffff'); 
+            }
+            
+            phaseDisplay.textContent = `${t.ui.phase}${newPhase}: ${pName}`;
+            state.phaseName = pName;
+
+            if (newPhase !== state.phase) {
+                if (state.gameRunning && newPhase > state.phase) {
+                     playPhaseupSound();
+                     phaseDisplay.classList.add('phase-levelup');
+                     flashOverlay.style.opacity = '0.3';
+                     setTimeout(() => { 
+                         phaseDisplay.classList.remove('phase-levelup');
+                         flashOverlay.style.opacity = '0';
+                     }, 500);
+                }
+                state.phase = newPhase;
+                updateMusicIntensity(state.phase);
+            }
+        }
+
+        /* --- BLOK SINIFI --- */
+        class Block {
+            constructor(x, y, w, h, hue) { this.x = x; this.y = y; this.w = w; this.h = h; this.hue = hue; this.vx = 0; this.vy = 0; this.isDebris = false; }
+            draw() {
+                const drawX = this.x; const drawY = this.y - state.cameraY;
+                const colorFront = `hsl(${this.hue}, 100%, 65%)`; const colorTop = `hsl(${this.hue}, 100%, 85%)`; const colorSide = `hsl(${this.hue}, 100%, 40%)`;
+                ctx.lineJoin = 'round';
+                ctx.fillStyle = colorTop; ctx.beginPath(); ctx.moveTo(drawX, drawY); ctx.lineTo(drawX + VIEW_OFFSET_X, drawY + VIEW_OFFSET_Y); ctx.lineTo(drawX + this.w + VIEW_OFFSET_X, drawY + VIEW_OFFSET_Y); ctx.lineTo(drawX + this.w, drawY); ctx.fill(); ctx.strokeStyle = `hsla(${this.hue}, 100%, 95%, 0.5)`; ctx.lineWidth = 1; ctx.stroke();
+                ctx.fillStyle = colorSide; ctx.beginPath(); ctx.moveTo(drawX + this.w, drawY); ctx.lineTo(drawX + this.w + VIEW_OFFSET_X, drawY + VIEW_OFFSET_Y); ctx.lineTo(drawX + this.w + VIEW_OFFSET_X, drawY + this.h + VIEW_OFFSET_Y); ctx.lineTo(drawX + this.w, drawY + this.h); ctx.fill(); ctx.stroke();
+                const grad = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.h); grad.addColorStop(0, `hsla(${this.hue}, 100%, 70%, 1)`); grad.addColorStop(1, `hsla(${this.hue}, 100%, 50%, 0.8)`);
+                ctx.fillStyle = grad;
+                if (!this.isDebris && state.combo > 0) { ctx.shadowBlur = 15 + (state.combo * 5); ctx.shadowColor = colorFront; } else { ctx.shadowBlur = 0; }
+                ctx.fillRect(drawX, drawY, this.w, this.h); ctx.shadowBlur = 0; ctx.strokeStyle = `hsla(${this.hue}, 100%, 90%, 0.8)`; ctx.strokeRect(drawX, drawY, this.w, this.h);
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 30%, 0.5)`; ctx.fillRect(drawX + 5, drawY + this.h - 10, this.w - 10, 5);
+            }
+            update() {
+                if (this.isDebris) { this.x += this.vx; this.y += this.vy; this.vy += 1; this.vx *= 0.99; } 
+                else { this.x += this.vx; if (this.x + this.w > width + 50) { this.vx = -Math.abs(this.vx); state.direction = -1; } else if (this.x < -50) { this.vx = Math.abs(this.vx); state.direction = 1; } }
+            }
+        }
+
+        function resize() {
+            width = Math.min(window.innerWidth, 600); height = window.innerHeight;
+            const dpr = window.devicePixelRatio || 1; canvas.style.width = width + 'px'; canvas.style.height = height + 'px'; canvas.width = width * dpr; canvas.height = height * dpr; ctx.scale(dpr, dpr);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function startGame() {
+            state.score = 0; state.combo = 0; state.maxCombo = 0; state.perfectCount = 0; state.blocks = []; state.debris = []; state.speed = 4; state.cameraY = 0; state.targetCameraY = 0; state.gameRunning = true; state.isPaused = false; state.hue = 180; 
+            updateMusicIntensity(1);
+            scoreEl.textContent = 0; scoreEl.classList.remove('score-active');
+            state.phase = 1; updateEnvironment(0);
+            document.querySelectorAll('#start-screen, #game-over-screen, #pause-screen, #info-screen, #exit-confirm-screen').forEach(el => el.classList.add('hidden'));
+            const goScreen = document.getElementById('game-over-screen'); goScreen.style.opacity = ''; goScreen.style.visibility = '';
+            const startX = (width - INITIAL_WIDTH) / 2; const startY = height - 200; 
+            state.blocks.push(new Block(startX, startY, INITIAL_WIDTH, BLOCK_HEIGHT, state.hue));
+            spawnNextBlock(); startMusic(); animate();
+        }
+
+        function spawnNextBlock() {
+            const prev = state.blocks[state.blocks.length - 1]; state.hue = (state.hue + 10) % 360; 
+            const newBlock = new Block(0, prev.y - BLOCK_HEIGHT, prev.w, BLOCK_HEIGHT, state.hue);
+            const offset = 80; 
+            if (Math.random() > 0.5) { newBlock.x = -newBlock.w - offset; newBlock.vx = state.speed; } 
+            else { newBlock.x = width + offset; newBlock.vx = -state.speed; }
+            state.currentBlock = newBlock;
+        }
+
+        function placeBlock() {
+            if (!state.gameRunning || state.isPaused) return;
+            const curr = state.currentBlock; const prev = state.blocks[state.blocks.length - 1]; const dist = curr.x - prev.x; const overlap = prev.w - Math.abs(dist);
+            if (overlap > 0) {
+                let newWidth = overlap; let newX = prev.x + (dist > 0 ? dist : 0);
+                if (Math.abs(dist) < 5) {
+                    newX = prev.x; newWidth = prev.w; state.combo++; state.perfectCount++;
+                    if(state.combo > state.maxCombo) state.maxCombo = state.combo;
+                    if (state.perfectCount >= 2) {
+                        const bonusAmount = 20; const maxAllowedWidth = Math.min(450, width - 40); const targetWidth = Math.min(newWidth + bonusAmount, maxAllowedWidth); const growth = targetWidth - newWidth;
+                        if (growth > 0) { newWidth = targetWidth; newX -= growth / 2; playBonusSound(); state.perfectCount = 0; }
+                    }
+                    playPerfect(); showComboEffect();
+                } else {
+                    state.combo = 0; state.perfectCount = 0; playSnap();
+                    const debrisW = prev.w - newWidth; const debrisX = dist > 0 ? newX + newWidth : curr.x;
+                    const debris = new Block(debrisX, curr.y, debrisW, BLOCK_HEIGHT, curr.hue); debris.vx = dist > 0 ? 5 : -5; debris.vy = -2; debris.isDebris = true; state.debris.push(debris);
+                }
+                curr.x = newX; curr.w = newWidth; curr.vx = 0; state.blocks.push(curr); state.currentBlock = null;
+                state.score++; state.speed += 0.06; scoreEl.textContent = state.score; scoreEl.classList.add('score-active'); setTimeout(() => scoreEl.classList.remove('score-active'), 150);
+                updateEnvironment(state.score);
+                const targetY = height * 0.6; if (curr.y - targetY < state.targetCameraY) { state.targetCameraY = curr.y - targetY; }
+                spawnNextBlock();
+            } else { gameOver(); }
+        }
+
+        function gameOver() {
+            state.gameRunning = false; playFail(); stopMusic();
+            const curr = state.currentBlock; const debris = new Block(curr.x, curr.y, curr.w, BLOCK_HEIGHT, curr.hue); debris.vx = curr.vx * 0.5; debris.vy = 5; debris.isDebris = true; state.debris.push(debris);
+            const best = localStorage.getItem('sciFiStackBest') || 0; if (state.score > best) { localStorage.setItem('sciFiStackBest', state.score); state.bestScore = state.score; document.getElementById('best-score').textContent = state.score; }
+            const t = translations[currentLang];
+            document.getElementById('final-score-text').textContent = t.gameover.scorePrefix + state.score;
+            document.getElementById('game-over-screen').classList.remove('hidden'); document.getElementById('game-over-screen').style.visibility = 'visible'; document.getElementById('game-over-screen').style.opacity = '1';
+        }
+
+        function showComboEffect() {
+            const t = translations[currentLang];
+            let comboText = t.combo.perfect;
+            if (state.combo === 1) comboText = t.combo.good;
+            else if (state.combo === 2) comboText = t.combo.great;
+            else if (state.combo === 3) comboText = t.combo.super;
+            else if (state.combo === 4) comboText = t.combo.perfect;
+            else if (state.combo === 5) comboText = t.combo.excellent;
+            else if (state.combo === 6) comboText = t.combo.amazing;
+            else if (state.combo >= 7) comboText = t.combo.godlike;
+            comboDisplay.textContent = comboText; comboDisplay.classList.add('combo-active'); setTimeout(() => comboDisplay.classList.remove('combo-active'), 500); 
+            flashOverlay.style.opacity = 0.15; setTimeout(() => flashOverlay.style.opacity = 0, 100);
+        }
+
+        function togglePause() {
+            if (!state.gameRunning) return; state.isPaused = !state.isPaused; const pauseScreen = document.getElementById('pause-screen');
+            const t = translations[currentLang];
+            playClickSound(); 
+            if (state.isPaused) { 
+                pauseScreen.classList.remove('hidden'); audioCtx.suspend(); 
+                document.getElementById('pause-main-options').classList.remove('d-none'); document.getElementById('pause-audio-settings').classList.add('d-none'); document.getElementById('pause-header').textContent = t.pause.header; 
+            } else { 
+                pauseScreen.classList.add('hidden'); audioCtx.resume(); animate(); 
+            }
+        }
+
+        function animate() {
+            if (state.isPaused) return; if (!state.gameRunning && state.debris.length === 0) return;
+            ctx.clearRect(0, 0, width, height); state.cameraY += (state.targetCameraY - state.cameraY) * 0.08;
+            state.blocks.forEach(b => { if (b.y - state.cameraY < height + 100 && b.y - state.cameraY > -200) { b.draw(); } });
+            if (state.currentBlock) { state.currentBlock.update(); state.currentBlock.draw(); }
+            for (let i = state.debris.length - 1; i >= 0; i--) { const d = state.debris[i]; d.update(); d.draw(); if (d.y - state.cameraY > height + 200) state.debris.splice(i, 1); }
+            requestAnimationFrame(animate);
+        }
+
+        let interactionEnabled = false;
+        function initAudioSystem() {
+            if (interactionEnabled) return;
+            interactionEnabled = true;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (!state.gameRunning) { startMusic(); }
+        }
+        document.addEventListener('pointerdown', initAudioSystem, { once: true });
+        document.addEventListener('keydown', initAudioSystem, { once: true });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (state.gameRunning && !state.isPaused) { togglePause(); }
+                if(audioCtx && audioCtx.state === 'running') { audioCtx.suspend(); }
+            }
+        });
+
+        /* --- EVENT HANDLERS --- */
+        const settingsScreen = document.getElementById('settings-screen'); const infoScreen = document.getElementById('info-screen'); const musicSlider = document.getElementById('music-slider'); const sfxSlider = document.getElementById('sfx-slider'); const pauseMusicSlider = document.getElementById('pause-music-slider'); const pauseSfxSlider = document.getElementById('pause-sfx-slider');
+        const exitScreen = document.getElementById('exit-confirm-screen');
+
+        document.getElementById('open-settings-btn').onclick = () => { playClickSound(); settingsScreen.classList.remove('hidden'); };
+        document.getElementById('close-settings-btn').onclick = () => { playBackSound(); settingsScreen.classList.add('hidden'); };
+        document.getElementById('open-info-btn').onclick = () => { playClickSound(); infoScreen.classList.remove('hidden'); };
+        document.getElementById('close-info-btn').onclick = () => { playBackSound(); infoScreen.classList.add('hidden'); };
+        
+        // EXIT LOGIC
+        document.getElementById('exit-app-btn').onclick = () => { playClickSound(); exitScreen.classList.remove('hidden'); };
+        document.getElementById('cancel-exit-btn').onclick = () => { playBackSound(); exitScreen.classList.add('hidden'); };
+        document.getElementById('confirm-exit-btn').onclick = () => { 
+            playClickSound();
+            window.close(); 
+            document.getElementById('fade-overlay').classList.add('fade-active');
+        };
+
+        document.getElementById('pause-btn').onclick = (e) => { e.stopPropagation(); togglePause(); };
+        document.getElementById('resume-btn').onclick = (e) => { e.stopPropagation(); togglePause(); };
+        document.getElementById('pause-config-btn').onclick = (e) => { e.stopPropagation(); playClickSound(); const t = translations[currentLang]; document.getElementById('pause-main-options').classList.add('d-none'); document.getElementById('pause-audio-settings').classList.remove('d-none'); document.getElementById('pause-header').textContent = t.pause.headerAudio; };
+        document.getElementById('pause-back-btn').onclick = (e) => { e.stopPropagation(); playBackSound(); const t = translations[currentLang]; document.getElementById('pause-audio-settings').classList.add('d-none'); document.getElementById('pause-main-options').classList.remove('d-none'); document.getElementById('pause-header').textContent = t.pause.header; };
+        
+        document.getElementById('start-btn').onclick = (e) => { e.stopPropagation(); triggerGameStart(); };
+        document.getElementById('restart-btn').onclick = (e) => { e.stopPropagation(); triggerGameStart(); };
+        
+        document.getElementById('quit-btn').onclick = (e) => { 
+            e.stopPropagation(); playBackSound(); state.isPaused = false; state.gameRunning = false; 
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            document.getElementById('pause-screen').classList.add('hidden'); document.getElementById('start-screen').classList.remove('hidden'); 
+            updateEnvironment(0); updateMusicIntensity(0); if (!musicInterval) startMusic();
+            scoreEl.textContent = 0; scoreEl.classList.remove('score-active'); 
+        };
+        
+        function updateMusicVolume(val) { musicVolume = val / 100; musicGain.gain.value = musicVolume; document.getElementById('music-val').textContent = val + '%'; document.getElementById('pause-music-val').textContent = val + '%'; musicSlider.value = val; pauseMusicSlider.value = val; }
+        function updateSfxVolume(val) { sfxVolume = val / 100; sfxGain.gain.value = sfxVolume; document.getElementById('sfx-val').textContent = val + '%'; document.getElementById('pause-sfx-val').textContent = val + '%'; sfxSlider.value = val; pauseSfxSlider.value = val; }
+        musicSlider.oninput = (e) => updateMusicVolume(e.target.value); pauseMusicSlider.oninput = (e) => updateMusicVolume(e.target.value);
+        sfxSlider.oninput = (e) => updateSfxVolume(e.target.value); pauseSfxSlider.oninput = (e) => updateSfxVolume(e.target.value);
+
+        const container = document.getElementById('game-container');
+        function handleInput(e) { if (e.target.closest('button') || e.target.closest('.slider') || e.target.closest('.lang-btn')) return; if (e.type === 'touchstart') e.preventDefault(); placeBlock(); }
+        container.addEventListener('mousedown', handleInput); container.addEventListener('touchstart', handleInput, {passive: false});
+        document.addEventListener('keydown', (e) => { 
+            if (e.code === 'Space') { if (state.gameRunning && !state.isPaused) placeBlock(); else if (!document.getElementById('start-screen').classList.contains('hidden')) triggerGameStart(); else if (!document.getElementById('game-over-screen').classList.contains('hidden')) triggerGameStart(); } 
+            if (e.code === 'KeyP' || e.code === 'Escape') { if (state.gameRunning) togglePause(); } 
+        });
+        
+        document.getElementById('home-btn').onclick = () => { const goScreen = document.getElementById('game-over-screen'); goScreen.classList.add('hidden'); goScreen.style.visibility = ''; goScreen.style.opacity = ''; document.getElementById('start-screen').classList.remove('hidden'); playBackSound(); state.gameRunning = false; updateEnvironment(0); updateMusicIntensity(0); startMusic(); document.getElementById('score').textContent = 0; document.getElementById('score').classList.remove('score-active'); };
+        document.getElementById('best-score').textContent = state.bestScore;
+
+        changeLanguage(currentLang);
+    </script>
+</body>
+</html>
