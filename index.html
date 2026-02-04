@@ -14,6 +14,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
+        /* --- ORTAK DEĞİŞKENLER --- */
         :root {
             --primary-color: #00f3ff;
             --secondary-color: #bc13fe;
@@ -34,7 +35,126 @@
             overscroll-behavior: none;
         }
 
-        /* --- GEÇİŞ EFEKTİ (FADE) --- */
+        /* --- AÇILIŞ VE YÜKLEME EKRANI (INTRO) STİLLERİ --- */
+        #intro-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 2000; /* Oyunun üzerinde olması için yüksek Z-index */
+            transition: opacity 1s ease-out, visibility 1s ease-out;
+            padding: 20px; /* Kenarlardan boşluk bırakarak taşmayı önle */
+            box-sizing: border-box;
+        }
+
+        .intro-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Logo Animasyonları */
+        .vora-logo-container {
+            position: relative;
+            width: 160px; height: 160px;
+            margin-bottom: 2rem;
+            opacity: 0; transform: scale(0.8);
+            transition: opacity 1s, transform 1s;
+        }
+
+        .vora-v {
+            position: absolute; fill: none; stroke-width: 10;
+            stroke-linecap: round; filter: drop-shadow(0 0 12px currentColor);
+        }
+
+        #vora-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem; font-weight: 900; letter-spacing: 6px;
+            color: #fff; text-transform: uppercase;
+            text-shadow: 0 0 20px var(--primary-color);
+            opacity: 0; transition: opacity 0.8s;
+            text-align: center; margin-top: 1rem;
+            width: 100%;
+        }
+
+        #intro-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem; font-weight: 900;
+            color: #fff; letter-spacing: 10px;
+            text-shadow: 0 0 20px var(--primary-color);
+            margin-bottom: 2rem;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.8s;
+            /* Mobil hizalama düzeltmeleri */
+            text-align: center;
+            width: 100%;
+            max-width: 100%;
+            line-height: 1.2; /* Satır aralığını düzenle */
+            padding: 0 10px; /* Mobilde kenarlara yapışmasın */
+        }
+
+        /* MOBİL İÇİN ÖZEL DÜZENLEMELER */
+        @media (max-width: 600px) {
+            #intro-title {
+                font-size: 2rem; /* Mobilde daha küçük font */
+                letter-spacing: 4px; /* Mobilde daha az boşluk */
+                margin-bottom: 1.5rem;
+            }
+
+            #vora-text {
+                font-size: 1.5rem;
+                letter-spacing: 4px;
+            }
+
+            .vora-logo-container {
+                width: 120px; /* Logo biraz daha küçük */
+                height: 120px;
+                margin-bottom: 1.5rem;
+            }
+            
+            #loading-container {
+                width: 220px; /* Yükleme çubuğu mobilde daha dar */
+            }
+        }
+
+        /* Yükleme Çubuğu */
+        #loading-wrapper {
+            margin-top: 3rem; display: none; flex-direction: column; align-items: center;
+            opacity: 0; transition: opacity 0.5s;
+            width: 100%;
+        }
+
+        #loading-container {
+            width: 280px; height: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            padding: 3px; position: relative;
+            clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+            max-width: 90%; /* Mobilde ekran dışına taşmasın */
+        }
+
+        #loading-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+            box-shadow: 0 0 20px var(--primary-color);
+            position: relative;
+            transition: width 0.1s linear;
+        }
+
+        #loading-bar::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 60px; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+            animation: scan 2s infinite linear;
+        }
+
+        @keyframes scan { 0% { left: -60px; } 100% { left: 100%; } }
+
+        #loading-status { font-size: 0.7rem; color: var(--primary-color); margin-top: 12px; letter-spacing: 4px; text-transform: uppercase; opacity: 0.8; text-align: center; }
+
+
+        /* --- OYUN (GAME) STİLLERİ --- */
+        
+        /* GEÇİŞ EFEKTİ (FADE) */
         #fade-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #000;
@@ -48,8 +168,7 @@
             pointer-events: auto !important;
         }
 
-        /* --- ATMOSFERİK KATMANLAR --- */
-        
+        /* ATMOSFERİK KATMANLAR */
         #bg-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
@@ -108,8 +227,7 @@
             transition: transform 0.1s;
         }
 
-        /* --- UI & HUD DÜZENİ --- */
-        
+        /* UI & HUD DÜZENİ */
         .top-controls {
             position: absolute; 
             top: max(2rem, env(safe-area-inset-top) + 10px);
@@ -174,7 +292,7 @@
             text-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
         }
 
-        /* --- HUD PANELLERİ --- */
+        /* HUD PANELLERİ */
         .hud-panel {
             background: rgba(10, 15, 20, 0.85);
             border: 1px solid var(--primary-color);
@@ -267,7 +385,6 @@
         }
         .icon-btn:active { transform: scale(0.9); }
 
-        /* KAPATMA BUTONU KONUMLANDIRMA */
         .bottom-controls {
             position: absolute;
             bottom: max(2rem, env(safe-area-inset-bottom) + 10px);
@@ -341,6 +458,25 @@
 </head>
 <body>
 
+    <!-- === INTRO SCREEN (Başlangıçta Üst Katman) === -->
+    <div id="intro-screen">
+        <div class="vora-logo-container" id="vora-logo-box">
+            <svg viewBox="0 0 200 200" width="100%" height="100%">
+                <path class="vora-v" d="M40,60 L100,160 L160,60" style="stroke: #bc13fe; opacity: 0.6; transform: translate(6px, 6px);"></path>
+                <path class="vora-v" d="M40,60 L100,160 L160,60" style="stroke: #00f3ff;"></path>
+            </svg>
+        </div>
+        <div id="vora-text">VORA GAMES</div>
+
+        <div id="intro-title">NEON STACK</div>
+        
+        <div id="loading-wrapper">
+            <div id="loading-container"><div id="loading-bar"></div></div>
+            <div id="loading-status">CALIBRATING NEON GRID...</div>
+        </div>
+    </div>
+
+    <!-- === OYUN KATMANI === -->
     <div id="bg-layer">
         <div id="bg-effect"></div>
     </div>
@@ -368,7 +504,7 @@
             </button>
         </div>
 
-        <!-- START SCREEN -->
+        <!-- START SCREEN (INTRO BİTTİKTEN SONRA GÖRÜNECEK) -->
         <div id="start-screen">
             <div class="hud-panel">
                 <h1>NEON STACK</h1>
@@ -386,7 +522,7 @@
                 <button class="lang-btn" id="lang-en" onclick="changeLanguage('en')">EN</button>
             </div>
 
-            <!-- KAPATMA BUTONU (SADECE ANA EKRANDA) -->
+            <!-- KAPATMA BUTONU -->
             <div class="bottom-controls">
                 <button id="exit-app-btn" class="icon-btn exit-btn" title="Exit">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
@@ -473,6 +609,9 @@
     </div>
 
     <script>
+        /* --- GLOBAL KONTROL DEĞİŞKENİ --- */
+        let isSystemReady = false;
+
         /* --- ÇOKLU DİL SİSTEMİ --- */
         let savedLang = localStorage.getItem('neonStackLang');
         let systemLang = navigator.language || navigator.userLanguage;
@@ -614,6 +753,8 @@
         }
 
         function startDrone(time) {
+            if (!isSystemReady && !state.gameRunning) return; // ÇİFTE KİLİT 2
+            
             droneOsc = audioCtx.createOscillator(); droneGain = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter();
             droneOsc.type = 'sawtooth'; droneOsc.frequency.setValueAtTime(55, time); 
             filter.type = 'lowpass'; filter.frequency.setValueAtTime(120, time);
@@ -629,6 +770,8 @@
         }
 
         function startMusic() {
+            if (!isSystemReady && !state.gameRunning) return; // ÇİFTE KİLİT 1
+
             if (musicInterval) clearInterval(musicInterval);
             if (audioCtx.state === 'suspended') audioCtx.resume();
             if (!droneOsc || droneOsc.state === 'stopped') startDrone(audioCtx.currentTime);
@@ -651,7 +794,8 @@
                 else { noteDuration = 140; currentSynthType = 'sawtooth'; if(droneLfo) droneLfo.frequency.value = 8.0; }
             }
             
-            if (state.gameRunning || !state.isPaused) {
+            // Eğer oyun çalışıyorsa veya sistem hazırsa ve pause değilse müzik güncellensin
+            if ((state.gameRunning || (!state.isPaused && isSystemReady))) {
                 clearInterval(musicInterval);
                 musicInterval = setInterval(() => {
                     if(audioCtx.state === 'running')
@@ -720,6 +864,60 @@
             osc1.connect(gain1); gain1.connect(sfxGain); gain1.connect(delayNode); 
             osc2.connect(filter2); filter2.connect(gain2); gain2.connect(sfxGain);
             osc1.start(now); osc1.stop(now + 1.5); osc2.start(now); osc2.stop(now + 0.4);
+        }
+
+        /* --- YENİ EKLENEN VORA GAMES INTRO SESİ (Sci-Fi Netflix Style) --- */
+        function playIntroSound() {
+            // Eğer audioCtx askıdaysa (autoplay policy), açmayı dene
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch((e) => console.log("Intro sesi için etkileşim gerekiyor."));
+            }
+            
+            const now = audioCtx.currentTime;
+            
+            // 1. "TA" KISMI - Deep Sci-Fi Impact (Tok ve güçlü vuruş)
+            const oscImpact = audioCtx.createOscillator();
+            const gainImpact = audioCtx.createGain();
+            oscImpact.type = 'sine';
+            oscImpact.frequency.setValueAtTime(120, now);
+            oscImpact.frequency.exponentialRampToValueAtTime(40, now + 0.3); // Pitch drop efekti
+            gainImpact.gain.setValueAtTime(0.8, now);
+            gainImpact.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            oscImpact.connect(gainImpact);
+            gainImpact.connect(sfxGain); // SFX kanalına gönder
+            oscImpact.start(now);
+            oscImpact.stop(now + 0.4);
+
+            // 2. "DUM" KISMI - Cyber Swell (Genişleyen, siber synthesizer sesi)
+            const startSwell = now + 0.2; // Hafif gecikmeli başlasın
+            
+            // Çoklu osilatör ile koro etkisi (Chorus effect via detuning)
+            const freqs = [55, 110, 112, 220.5]; // Bas ve Harmonikler
+            freqs.forEach((f, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+                
+                osc.type = i === 0 ? 'triangle' : 'sawtooth'; // Bas için triangle, üstler için saw
+                osc.frequency.setValueAtTime(f, startSwell);
+                
+                // Filtre hareketi (Kapalıdan açığa - Swell efekti)
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(100, startSwell);
+                filter.frequency.exponentialRampToValueAtTime(2000, startSwell + 1.5);
+                
+                // Ses seviyesi zarfı (Envelope)
+                gain.gain.setValueAtTime(0, startSwell);
+                gain.gain.linearRampToValueAtTime(0.2, startSwell + 0.1); // Attack
+                gain.gain.exponentialRampToValueAtTime(0.001, startSwell + 3.0); // Uzun Decay
+                
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain); 
+                
+                osc.start(startSwell);
+                osc.stop(startSwell + 3.0);
+            });
         }
 
         function triggerGameStart() {
@@ -943,19 +1141,35 @@
         }
 
         let interactionEnabled = false;
+        
+        // SES SİSTEMİ BAŞLATMA FONKSİYONU
         function initAudioSystem() {
-            if (interactionEnabled) return;
-            interactionEnabled = true;
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (!state.gameRunning) { startMusic(); }
+            // Sadece etkileşim sırasında AudioContext'i resume etmeye çalış
+            // AMA müziği başlatma!
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().then(() => {
+                    // Resume başarılı. Ama müziği başlatmak için isSystemReady'i bekle
+                    // Buraya müzik başlatma kodu KOYMA
+                    console.log("AudioContext resumed. Waiting for System Ready...");
+                }).catch(e => console.log("AudioContext resume failed or prevented."));
+            }
         }
+        
+        // Tarayıcı izin verirse hemen başlat
+        initAudioSystem();
+
+        // Kullanıcı intro izlerken ekrana dokunursa veya tuşa basarsa sadece AudioContext'i aç (müzik yok)
         document.addEventListener('pointerdown', initAudioSystem, { once: true });
         document.addEventListener('keydown', initAudioSystem, { once: true });
+        document.addEventListener('click', initAudioSystem, { once: true });
 
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (state.gameRunning && !state.isPaused) { togglePause(); }
                 if(audioCtx && audioCtx.state === 'running') { audioCtx.suspend(); }
+            } else {
+                // Sayfaya geri dönüldüğünde sesi aç
+                if(audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
             }
         });
 
@@ -1010,6 +1224,85 @@
         document.getElementById('best-score').textContent = state.bestScore;
 
         changeLanguage(currentLang);
+
+        /* --- INTRO SEKANSI MANTIĞI (En sona eklendi) --- */
+        window.addEventListener('load', () => {
+            // Sayfa yüklendiğinde de sesi başlatmayı dene
+            initAudioSystem();
+
+            const voraBox = document.getElementById('vora-logo-box');
+            const voraLbl = document.getElementById('vora-text');
+            const neonLbl = document.getElementById('intro-title');
+            const loadWrap = document.getElementById('loading-wrapper');
+            const lBar = document.getElementById('loading-bar');
+            const lStat = document.getElementById('loading-status');
+            const introScreen = document.getElementById('intro-screen');
+
+            // 1. ADIM: Vora Games Logosu ve Yazısı Belirir
+            setTimeout(() => {
+                // VORA GAMES GÖRÜNDÜĞÜNDE SES ÇALSIN
+                playIntroSound();
+
+                // voraBox ve voraLbl zaten display block (flex container içinde), sadece opacity ile oynuyoruz
+                requestAnimationFrame(() => {
+                    voraBox.style.opacity = '1'; 
+                    voraBox.style.transform = 'scale(1)'; 
+                    voraLbl.style.opacity = '1';
+                });
+            }, 500);
+
+            // 2. ADIM: Vora Kaybolur, Neon Stack ve Yükleme Çubuğu Belirir
+            setTimeout(() => {
+                voraBox.style.opacity = '0'; 
+                voraLbl.style.opacity = '0';
+                
+                setTimeout(() => {
+                    voraBox.style.display = 'none'; 
+                    voraLbl.style.display = 'none';
+                    
+                    neonLbl.style.display = 'block'; 
+                    loadWrap.style.display = 'flex';
+                    
+                    requestAnimationFrame(() => {
+                        neonLbl.style.opacity = '1'; 
+                        loadWrap.style.opacity = '1';
+                        
+                        // Yükleme Animasyonu Başlar
+                        let progress = 0;
+                        const msgs = ["LOADING ASSETS...", "SYNCING GRID...", "READYING ENGINE...", "FINALIZING..."];
+                        const timer = setInterval(() => {
+                            progress += Math.random() * 2.5;
+                            if (progress >= 100) {
+                                progress = 100; 
+                                clearInterval(timer);
+                                lStat.textContent = "SYSTEM READY";
+                                
+                                // SYSTEM READY OLDU, MÜZİK BAŞLAYABİLİR
+                                isSystemReady = true;
+
+                                // MÜZİK TETİKLEME: Intro bittiğinde müziği ve atmosfer sesini KESİN başlat
+                                if (audioCtx.state === 'suspended') { audioCtx.resume(); } // Garanti olsun diye tekrar resume
+                                updateMusicIntensity(0); // Menü modu
+                                startMusic(); 
+                                
+                                // --- BİRLEŞTİRME NOKTASI: Intro bittiğinde ekranı kaldır ---
+                                setTimeout(() => {
+                                    introScreen.classList.add('intro-hidden');
+                                    // Arka planda oyun zaten hazır bekliyor olacak
+                                    setTimeout(() => {
+                                        introScreen.style.display = 'none';
+                                    }, 1000); // CSS transition süresi kadar bekle
+                                }, 800);
+                            }
+                            lBar.style.width = progress + '%';
+                            if (progress < 100) {
+                                lStat.textContent = msgs[Math.floor(progress/26)] || "COMPLETING...";
+                            }
+                        }, 40);
+                    });
+                }, 1000);
+            }, 3500);
+        });
     </script>
 </body>
 </html>
